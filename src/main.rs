@@ -42,6 +42,12 @@ fn main() {
     let mut running = true;
     let mut last_update = timer.ticks();
 
+    let vertices: Vec<f32> = vec![
+        -0.5, -0.5, 0., //
+        0.5, -0.5, 0., //
+        0., 0.5, 0.,
+    ];
+
     while running {
         let milliseconds = timer.ticks();
         let start = timer.performance_counter();
