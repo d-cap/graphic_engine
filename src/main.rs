@@ -42,6 +42,11 @@ fn main() {
     let mut running = true;
     let mut last_update = timer.ticks();
 
+    unsafe {
+        gl::Enable(gl::DEPTH_TEST);
+        gl::DepthFunc(gl::LESS);
+    }
+
     let vertices: Vec<f32> = vec![
         -0.5, -0.5, 0., //
         0.5, -0.5, 0., //
