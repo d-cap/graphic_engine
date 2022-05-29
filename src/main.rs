@@ -1,6 +1,9 @@
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::mouse::MouseButton;
+use shader::Shader;
+
+mod shader;
 
 const FPS_CAP: f32 = (1.0 / 60.0) * 1000.0;
 
@@ -47,14 +50,16 @@ fn main() {
         gl::DepthFunc(gl::LESS);
     }
 
-    let mut attributes = 0;
-    unsafe { gl::GetIntegerv(gl::MAX_VERTEX_ATOMIC_COUNTERS, &mut attributes) };
-    println!("Attrib: {}", attributes);
+    let shader = Shader::new(
+        "shader/triangle_vertex_shader.vs",
+        "shader/triangle_fragment_shader.fs",
+    );
 
     let vertices: Vec<f32> = vec![
-        -0.5, -0.5, 0., //
-        0.5, -0.5, 0., //
-        0., 0.5, 0.,
+        // positions    // colors
+        0.5, -0.5, 0.0, 1.0, 1.0, 0.0, // bottom right
+        -0.5, -0.5, 0.0, 0.0, 1.0, 1.0, // bottom left
+        0.0, 0.5, 0.0, 1.0, 0.0, 1.0, // top
     ];
 
     let vertices_ebo: Vec<f32> = vec![
@@ -68,49 +73,6 @@ fn main() {
         0, 1, 3, // first triangle
         1, 2, 3, // second triangle
     ];
-
-    let vertex_shader_source = std::ffi::CString::new(
-        "
-        #version 330 core
-        layout (location = 0) in vec3 aPos;
-
-        void main()
-        {
-            gl_Position = vec4(aPos, 1.0f);
-        }
-    ",
-    )
-    .unwrap();
-    let vertex_shader = compile_shader(vertex_shader_source, gl::VERTEX_SHADER);
-
-    let fragment_shader_source = std::ffi::CString::new(
-        "
-        #version 330 core
-        out vec4 FragColor;
-
-        void main()
-        {
-            FragColor = vec4(0.5f, 0.1f, 0.3f, 1.0f);
-        }
-    ",
-    )
-    .unwrap();
-    let fragment_shader = compile_shader(fragment_shader_source, gl::FRAGMENT_SHADER);
-
-    let program;
-    unsafe {
-        program = gl::CreateProgram();
-        gl::AttachShader(program, vertex_shader);
-        gl::AttachShader(program, fragment_shader);
-        gl::LinkProgram(program);
-        let mut success = 0;
-        gl::GetProgramiv(program, gl::LINK_STATUS, &mut success);
-        if success == 0 {
-            panic!("Linking failed");
-        }
-        gl::DeleteShader(vertex_shader);
-        gl::DeleteShader(fragment_shader);
-    }
 
     let mut vao = 0;
     unsafe {
@@ -134,10 +96,19 @@ fn main() {
             3,
             gl::FLOAT,
             gl::FALSE,
-            (3 * std::mem::size_of::<f32>()) as _,
+            (6 * std::mem::size_of::<f32>()) as _,
             0 as _,
         );
         gl::EnableVertexAttribArray(0);
+        gl::VertexAttribPointer(
+            1,
+            3,
+            gl::FLOAT,
+            gl::FALSE,
+            (6 * std::mem::size_of::<f32>()) as _,
+            (3 * std::mem::size_of::<f32>()) as _,
+        );
+        gl::EnableVertexAttribArray(1);
         gl::BindBuffer(gl::ARRAY_BUFFER, 0);
         gl::BindVertexArray(0);
     }
@@ -226,7 +197,7 @@ fn main() {
         unsafe {
             gl::ClearColor(0.2, 0.5, 0., 1.);
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
-            gl::UseProgram(program);
+            shader.use_program();
             gl::BindVertexArray(vao);
             gl::DrawArrays(gl::TRIANGLES, 0, 3);
             gl::BindVertexArray(0);
@@ -243,19 +214,4 @@ fn main() {
 
         window.gl_swap_window();
     }
-}
-
-fn compile_shader(source: std::ffi::CString, shader_type: gl::types::GLenum) -> gl::types::GLuint {
-    let shader;
-    unsafe {
-        shader = gl::CreateShader(shader_type);
-        gl::ShaderSource(shader, 1, &source.as_ptr(), std::ptr::null());
-        gl::CompileShader(shader);
-        let mut success = 0;
-        gl::GetShaderiv(shader, gl::COMPILE_STATUS, &mut success);
-        if success == 0 {
-            panic!("Compiling failed");
-        }
-    }
-    shader
 }
