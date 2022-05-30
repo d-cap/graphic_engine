@@ -118,6 +118,8 @@ fn main() {
         gl::BindVertexArray(0);
     }
 
+    let image_texture = image::open("images/container.jpg").unwrap();
+
     while running {
         let milliseconds = timer.ticks();
         let start = timer.performance_counter();
