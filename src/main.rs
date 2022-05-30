@@ -84,8 +84,19 @@ fn main() {
         gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
         gl::BufferData(
             gl::ARRAY_BUFFER,
-            (vertices.len() * std::mem::size_of::<f32>()) as _,
-            vertices.as_ptr() as _,
+            (vertices_ebo.len() * std::mem::size_of::<f32>()) as _,
+            vertices_ebo.as_ptr() as _,
+            gl::STATIC_DRAW,
+        );
+
+        let mut ebo = 0;
+        gl::GenBuffers(1, &mut ebo);
+
+        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ebo);
+        gl::BufferData(
+            gl::ELEMENT_ARRAY_BUFFER,
+            (indices.len() * std::mem::size_of::<u32>()) as _,
+            indices.as_ptr() as _,
             gl::STATIC_DRAW,
         );
     }
@@ -96,24 +107,14 @@ fn main() {
             3,
             gl::FLOAT,
             gl::FALSE,
-            (6 * std::mem::size_of::<f32>()) as _,
+            (3 * std::mem::size_of::<f32>()) as _,
             0 as _,
         );
         gl::EnableVertexAttribArray(0);
-        gl::VertexAttribPointer(
-            1,
-            3,
-            gl::FLOAT,
-            gl::FALSE,
-            (6 * std::mem::size_of::<f32>()) as _,
-            (3 * std::mem::size_of::<f32>()) as _,
-        );
-        gl::EnableVertexAttribArray(1);
         gl::BindBuffer(gl::ARRAY_BUFFER, 0);
         gl::BindVertexArray(0);
     }
 
-    let cstr = std::ffi::CString::new("ourColor").unwrap();
     while running {
         let milliseconds = timer.ticks();
         let start = timer.performance_counter();
@@ -195,11 +196,12 @@ fn main() {
 
         // Render
         unsafe {
-            gl::ClearColor(0.2, 0.5, 0., 1.);
+            gl::ClearColor(0.5, 0.5, 0.6, 1.);
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
-            shader.use_program();
+            shader.use_shader();
             gl::BindVertexArray(vao);
-            gl::DrawArrays(gl::TRIANGLES, 0, 3);
+            // gl::DrawArrays(gl::TRIANGLES, 0, 3);
+            gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, 0 as _);
             gl::BindVertexArray(0);
         };
 
