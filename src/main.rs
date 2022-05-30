@@ -56,18 +56,12 @@ fn main() {
     );
 
     let vertices: Vec<f32> = vec![
-        // positions    // colors
-        0.5, -0.5, 0.0, 1.0, 1.0, 0.0, // bottom right
-        -0.5, -0.5, 0.0, 0.0, 1.0, 1.0, // bottom left
-        0.0, 0.5, 0.0, 1.0, 0.0, 1.0, // top
+        0.5, 0.5, 0., 1., 1., 0., 1., 1., // top right
+        0.5, -0.5, 0., 0., 1., 1., 1., 0., // bottom right
+        -0.5, -0.5, 0., 1., 0., 1., 0., 0., // bottom left
+        -0.5, 0.5, 0., 1., 1., 1., 0., 1., // top left
     ];
 
-    let vertices_ebo: Vec<f32> = vec![
-        0.5, 0.5, 0.0, // top right
-        0.5, -0.5, 0.0, // bottom right
-        -0.5, -0.5, 0.0, // bottom left
-        -0.5, 0.5, 0.0, // top left
-    ];
     let indices: Vec<u32> = vec![
         // note that we start from 0!
         0, 1, 3, // first triangle
@@ -84,8 +78,8 @@ fn main() {
         gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
         gl::BufferData(
             gl::ARRAY_BUFFER,
-            (vertices_ebo.len() * std::mem::size_of::<f32>()) as _,
-            vertices_ebo.as_ptr() as _,
+            (vertices.len() * std::mem::size_of::<f32>()) as _,
+            vertices.as_ptr() as _,
             gl::STATIC_DRAW,
         );
 
@@ -107,10 +101,19 @@ fn main() {
             3,
             gl::FLOAT,
             gl::FALSE,
-            (3 * std::mem::size_of::<f32>()) as _,
+            (8 * std::mem::size_of::<f32>()) as _,
             0 as _,
         );
         gl::EnableVertexAttribArray(0);
+        gl::VertexAttribPointer(
+            1,
+            3,
+            gl::FLOAT,
+            gl::FALSE,
+            (8 * std::mem::size_of::<f32>()) as _,
+            (3 * std::mem::size_of::<f32>()) as _,
+        );
+        gl::EnableVertexAttribArray(1);
         gl::BindBuffer(gl::ARRAY_BUFFER, 0);
         gl::BindVertexArray(0);
     }
