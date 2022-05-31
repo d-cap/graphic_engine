@@ -114,11 +114,45 @@ fn main() {
             (3 * std::mem::size_of::<f32>()) as _,
         );
         gl::EnableVertexAttribArray(1);
+        gl::VertexAttribPointer(
+            2,
+            2,
+            gl::FLOAT,
+            gl::FALSE,
+            (8 * std::mem::size_of::<f32>()) as _,
+            (6 * std::mem::size_of::<f32>()) as _,
+        );
+        gl::EnableVertexAttribArray(2);
         gl::BindBuffer(gl::ARRAY_BUFFER, 0);
         gl::BindVertexArray(0);
     }
 
     let image_texture = image::open("images/container.jpg").unwrap();
+    let mut texture = 0;
+    unsafe {
+        gl::GenTextures(1, &mut texture);
+        gl::BindTexture(gl::TEXTURE_2D, texture);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as _);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as _);
+        gl::TexParameteri(
+            gl::TEXTURE_2D,
+            gl::TEXTURE_MIN_FILTER,
+            gl::LINEAR_MIPMAP_LINEAR as _,
+        );
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as _);
+        gl::TexImage2D(
+            gl::TEXTURE_2D,
+            0,
+            gl::RGB as _,
+            image_texture.width() as _,
+            image_texture.height() as _,
+            0,
+            gl::RGB,
+            gl::UNSIGNED_BYTE,
+            image_texture.to_rgb8().as_ptr() as _,
+        );
+        gl::GenerateMipmap(gl::TEXTURE_2D);
+    }
 
     while running {
         let milliseconds = timer.ticks();
@@ -204,6 +238,7 @@ fn main() {
             gl::ClearColor(0.5, 0.5, 0.6, 1.);
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
             shader.use_shader();
+            gl::BindTexture(gl::TEXTURE_2D, texture);
             gl::BindVertexArray(vao);
             // gl::DrawArrays(gl::TRIANGLES, 0, 3);
             gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, 0 as _);
