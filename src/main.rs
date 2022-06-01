@@ -127,11 +127,11 @@ fn main() {
         gl::BindVertexArray(0);
     }
 
-    let image_texture = image::open("images/container.jpg").unwrap();
-    let mut texture = 0;
+    let image_texture_1 = image::open("images/container.jpg").unwrap();
+    let mut texture_1 = 0;
     unsafe {
-        gl::GenTextures(1, &mut texture);
-        gl::BindTexture(gl::TEXTURE_2D, texture);
+        gl::GenTextures(1, &mut texture_1);
+        gl::BindTexture(gl::TEXTURE_2D, texture_1);
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as _);
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as _);
         gl::TexParameteri(
@@ -144,15 +144,46 @@ fn main() {
             gl::TEXTURE_2D,
             0,
             gl::RGB as _,
-            image_texture.width() as _,
-            image_texture.height() as _,
+            image_texture_1.width() as _,
+            image_texture_1.height() as _,
             0,
             gl::RGB,
             gl::UNSIGNED_BYTE,
-            image_texture.to_rgb8().as_ptr() as _,
+            image_texture_1.to_rgb8().as_ptr() as _,
         );
         gl::GenerateMipmap(gl::TEXTURE_2D);
     }
+
+    let image_texture_2 = image::open("images/awesomeface.png").unwrap().flipv();
+    let mut texture_2 = 0;
+    unsafe {
+        gl::GenTextures(1, &mut texture_2);
+        gl::BindTexture(gl::TEXTURE_2D, texture_2);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as _);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as _);
+        gl::TexParameteri(
+            gl::TEXTURE_2D,
+            gl::TEXTURE_MIN_FILTER,
+            gl::LINEAR_MIPMAP_LINEAR as _,
+        );
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as _);
+        gl::TexImage2D(
+            gl::TEXTURE_2D,
+            0,
+            gl::RGBA as _,
+            image_texture_2.width() as _,
+            image_texture_2.height() as _,
+            0,
+            gl::RGBA,
+            gl::UNSIGNED_BYTE,
+            image_texture_2.to_rgba8().as_ptr() as _,
+        );
+        gl::GenerateMipmap(gl::TEXTURE_2D);
+    }
+
+    shader.use_shader();
+    shader.set_i32("texture1", 0);
+    shader.set_i32("texture2", 1);
 
     while running {
         let milliseconds = timer.ticks();
@@ -238,9 +269,11 @@ fn main() {
             gl::ClearColor(0.5, 0.5, 0.6, 1.);
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
             shader.use_shader();
-            gl::BindTexture(gl::TEXTURE_2D, texture);
+            gl::ActiveTexture(gl::TEXTURE0);
+            gl::BindTexture(gl::TEXTURE_2D, texture_1);
+            gl::ActiveTexture(gl::TEXTURE1);
+            gl::BindTexture(gl::TEXTURE_2D, texture_2);
             gl::BindVertexArray(vao);
-            // gl::DrawArrays(gl::TRIANGLES, 0, 3);
             gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, 0 as _);
             gl::BindVertexArray(0);
         };

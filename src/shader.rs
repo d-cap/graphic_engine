@@ -79,6 +79,14 @@ impl Shader {
             gl::UseProgram(self.id);
         }
     }
+
+    pub fn set_i32(&self, name: &str, value: i32) {
+        let n = CString::new(name).unwrap();
+        unsafe {
+            let location = gl::GetUniformLocation(self.id, n.as_ptr());
+            gl::Uniform1i(location, value);
+        }
+    }
 }
 
 fn read_file(path: &str) -> CString {
