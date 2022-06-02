@@ -8,11 +8,9 @@ pub struct Shader {
 impl Shader {
     pub fn new(vertex_shader_path: &str, fragment_shader_path: &str) -> Self {
         let id;
-        unsafe {
-            let vertex_shader = Self::compile_shader(vertex_shader_path, gl::VERTEX_SHADER);
-            let fragment_shader = Self::compile_shader(fragment_shader_path, gl::FRAGMENT_SHADER);
-            id = Self::link_program(vertex_shader, fragment_shader);
-        }
+        let vertex_shader = Self::compile_shader(vertex_shader_path, gl::VERTEX_SHADER);
+        let fragment_shader = Self::compile_shader(fragment_shader_path, gl::FRAGMENT_SHADER);
+        id = Self::link_program(vertex_shader, fragment_shader);
         Self { id }
     }
 
@@ -81,10 +79,16 @@ impl Shader {
     }
 
     pub fn set_i32(&self, name: &str, value: i32) {
-        let n = CString::new(name).unwrap();
         unsafe {
-            let location = gl::GetUniformLocation(self.id, n.as_ptr());
+            let location = gl::GetUniformLocation(self.id, to_cstring(name).as_ptr());
             gl::Uniform1i(location, value);
+        }
+    }
+
+    pub fn set_mat4_f32(&self, name: &str, value: glm::Mat4) {
+        unsafe {
+            let location = gl::GetUniformLocation(self.id, to_cstring(name).as_ptr());
+            gl::UniformMatrix4fv(location, 1, gl::FALSE, value.as_ptr());
         }
     }
 }
@@ -96,4 +100,9 @@ fn read_file(path: &str) -> CString {
         string = CString::from_vec_unchecked(file);
     }
     string
+}
+
+#[inline]
+fn to_cstring(value: &str) -> CString {
+    CString::new(value).unwrap()
 }

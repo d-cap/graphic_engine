@@ -1,3 +1,5 @@
+extern crate nalgebra_glm as glm;
+
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::mouse::MouseButton;
@@ -56,16 +58,55 @@ fn main() {
     );
 
     let vertices: Vec<f32> = vec![
-        0.5, 0.5, 0., 1., 1., 0., 1., 1., // top right
-        0.5, -0.5, 0., 0., 1., 1., 1., 0., // bottom right
-        -0.5, -0.5, 0., 1., 0., 1., 0., 0., // bottom left
-        -0.5, 0.5, 0., 1., 1., 1., 0., 1., // top left
+        -0.5, -0.5, -0.5, 0.0, 0.0, //
+        0.5, -0.5, -0.5, 1.0, 0.0, //
+        0.5, 0.5, -0.5, 1.0, 1.0, //
+        0.5, 0.5, -0.5, 1.0, 1.0, //
+        -0.5, 0.5, -0.5, 0.0, 1.0, //
+        -0.5, -0.5, -0.5, 0.0, 0.0, //
+        -0.5, -0.5, 0.5, 0.0, 0.0, //
+        0.5, -0.5, 0.5, 1.0, 0.0, //
+        0.5, 0.5, 0.5, 1.0, 1.0, //
+        0.5, 0.5, 0.5, 1.0, 1.0, //
+        -0.5, 0.5, 0.5, 0.0, 1.0, //
+        -0.5, -0.5, 0.5, 0.0, 0.0, //
+        -0.5, 0.5, 0.5, 1.0, 0.0, //
+        -0.5, 0.5, -0.5, 1.0, 1.0, //
+        -0.5, -0.5, -0.5, 0.0, 1.0, //
+        -0.5, -0.5, -0.5, 0.0, 1.0, //
+        -0.5, -0.5, 0.5, 0.0, 0.0, //
+        -0.5, 0.5, 0.5, 1.0, 0.0, //
+        0.5, 0.5, 0.5, 1.0, 0.0, //
+        0.5, 0.5, -0.5, 1.0, 1.0, //
+        0.5, -0.5, -0.5, 0.0, 1.0, //
+        0.5, -0.5, -0.5, 0.0, 1.0, //
+        0.5, -0.5, 0.5, 0.0, 0.0, //
+        0.5, 0.5, 0.5, 1.0, 0.0, //
+        -0.5, -0.5, -0.5, 0.0, 1.0, //
+        0.5, -0.5, -0.5, 1.0, 1.0, //
+        0.5, -0.5, 0.5, 1.0, 0.0, //
+        0.5, -0.5, 0.5, 1.0, 0.0, //
+        -0.5, -0.5, 0.5, 0.0, 0.0, //
+        -0.5, -0.5, -0.5, 0.0, 1.0, //
+        -0.5, 0.5, -0.5, 0.0, 1.0, //
+        0.5, 0.5, -0.5, 1.0, 1.0, //
+        0.5, 0.5, 0.5, 1.0, 0.0, //
+        0.5, 0.5, 0.5, 1.0, 0.0, //
+        -0.5, 0.5, 0.5, 0.0, 0.0, //
+        -0.5, 0.5, -0.5, 0.0, 1.0, //
     ];
 
-    let indices: Vec<u32> = vec![
-        // note that we start from 0!
-        0, 1, 3, // first triangle
-        1, 2, 3, // second triangle
+    let cube_positions = vec![
+        glm::Vec3::new(0.0, 0.0, 0.0),
+        glm::Vec3::new(2.0, 5.0, -15.0),
+        glm::Vec3::new(-1.5, -2.2, -2.5),
+        glm::Vec3::new(-3.8, -2.0, -12.3),
+        glm::Vec3::new(2.4, -0.4, -3.5),
+        glm::Vec3::new(-1.7, 3.0, -7.5),
+        glm::Vec3::new(1.3, -2.0, -2.5),
+        glm::Vec3::new(1.5, 2.0, -2.5),
+        glm::Vec3::new(1.5, 0.2, -1.5),
+        glm::Vec3::new(-1.3, 1.0, -1.5),
     ];
 
     let mut vao = 0;
@@ -82,17 +123,6 @@ fn main() {
             vertices.as_ptr() as _,
             gl::STATIC_DRAW,
         );
-
-        let mut ebo = 0;
-        gl::GenBuffers(1, &mut ebo);
-
-        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ebo);
-        gl::BufferData(
-            gl::ELEMENT_ARRAY_BUFFER,
-            (indices.len() * std::mem::size_of::<u32>()) as _,
-            indices.as_ptr() as _,
-            gl::STATIC_DRAW,
-        );
     }
 
     unsafe {
@@ -101,28 +131,19 @@ fn main() {
             3,
             gl::FLOAT,
             gl::FALSE,
-            (8 * std::mem::size_of::<f32>()) as _,
+            (5 * std::mem::size_of::<f32>()) as _,
             0 as _,
         );
         gl::EnableVertexAttribArray(0);
         gl::VertexAttribPointer(
             1,
-            3,
+            2,
             gl::FLOAT,
             gl::FALSE,
-            (8 * std::mem::size_of::<f32>()) as _,
+            (5 * std::mem::size_of::<f32>()) as _,
             (3 * std::mem::size_of::<f32>()) as _,
         );
         gl::EnableVertexAttribArray(1);
-        gl::VertexAttribPointer(
-            2,
-            2,
-            gl::FLOAT,
-            gl::FALSE,
-            (8 * std::mem::size_of::<f32>()) as _,
-            (6 * std::mem::size_of::<f32>()) as _,
-        );
-        gl::EnableVertexAttribArray(2);
         gl::BindBuffer(gl::ARRAY_BUFFER, 0);
         gl::BindVertexArray(0);
     }
@@ -226,7 +247,16 @@ fn main() {
             gl::ActiveTexture(gl::TEXTURE1);
             gl::BindTexture(gl::TEXTURE_2D, texture_2);
             gl::BindVertexArray(vao);
-            gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, 0 as _);
+        }
+
+        for c in cube_positions.iter() {
+            unsafe {
+                gl::DrawArrays(gl::TRIANGLES, 0, 36);
+            }
+            break;
+        }
+
+        unsafe {
             gl::BindVertexArray(0);
         };
 
