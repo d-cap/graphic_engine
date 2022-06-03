@@ -3,6 +3,7 @@ extern crate nalgebra_glm as glm;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::mouse::MouseButton;
+use sdl2::sys::X_PROTOCOL;
 use shader::Shader;
 use utils::to_radians;
 
@@ -160,17 +161,26 @@ fn main() {
     shader.set_i32("texture1", 0);
     shader.set_i32("texture2", 1);
 
-    let view = glm::translate(&glm::Mat4::identity(), &glm::Vec3::new(0., 0., -3.));
-    let projection = glm::perspective(width as f32 / height as f32, to_radians(55.), 0.1, 100.);
+    let mut camera_pos = glm::Vec3::new(0., 0., 3.);
+    let mut camera_front = glm::Vec3::new(0., 0., -1.);
+    let camera_up = glm::Vec3::new(0., 1., 0.);
 
-    shader.set_mat4_f32("view", view);
-    shader.set_mat4_f32("projection", projection);
+    let mut prev_mouse_x = width as f32 / 2.;
+    let mut prev_mouse_y = height as f32 / 2.;
+
+    let sensitivity = 0.1;
+    let mut pitch = 0.;
+    let mut yaw = -90.;
+
+    let mut fov = 45.;
 
     while running {
         let milliseconds = timer.ticks();
+        let seconds = milliseconds as f32 / 1000.;
         let start = timer.performance_counter();
         let delta = (milliseconds - last_update) as f32 / 1000.;
 
+        let camera_speed = 2.5 * delta;
         for event in event_pump.poll_iter() {
             match event {
                 Event::Quit { .. }
@@ -181,31 +191,41 @@ fn main() {
                 Event::KeyDown {
                     keycode: Some(Keycode::W),
                     ..
-                } => {}
+                } => {
+                    camera_pos += camera_speed * camera_front;
+                }
                 Event::KeyUp {
                     keycode: Some(Keycode::W),
                     ..
                 } => {}
                 Event::KeyDown {
-                    keycode: Some(Keycode::D),
+                    keycode: Some(Keycode::S),
                     ..
-                } => {}
+                } => {
+                    camera_pos -= camera_speed * camera_front;
+                }
                 Event::KeyUp {
-                    keycode: Some(Keycode::D),
+                    keycode: Some(Keycode::S),
                     ..
                 } => {}
                 Event::KeyDown {
-                    keycode: Some(Keycode::S),
+                    keycode: Some(Keycode::D),
                     ..
-                } => {}
+                } => {
+                    camera_pos +=
+                        glm::normalize(&glm::cross(&camera_front, &camera_up)) * camera_speed;
+                }
                 Event::KeyUp {
-                    keycode: Some(Keycode::S),
+                    keycode: Some(Keycode::D),
                     ..
                 } => {}
                 Event::KeyDown {
                     keycode: Some(Keycode::A),
                     ..
-                } => {}
+                } => {
+                    camera_pos -=
+                        glm::normalize(&glm::cross(&camera_front, &camera_up)) * camera_speed;
+                }
                 Event::KeyUp {
                     keycode: Some(Keycode::A),
                     ..
@@ -228,7 +248,23 @@ fn main() {
                 } => {}
                 Event::MouseMotion {
                     x, y, xrel, yrel, ..
-                } => {}
+                } => {
+                    let mut x_offset = x as f32 - prev_mouse_x;
+                    let mut y_offset = prev_mouse_y - y as f32;
+                    prev_mouse_x = x as f32;
+                    prev_mouse_y = y as f32;
+                    x_offset *= sensitivity;
+                    y_offset *= sensitivity;
+                    yaw += x_offset;
+                    pitch += y_offset;
+
+                    if pitch > 89. {
+                        pitch = 89.;
+                    }
+                    if pitch < -89. {
+                        pitch = -89.;
+                    }
+                }
                 Event::MouseButtonDown {
                     mouse_btn: MouseButton::Left,
                     ..
@@ -237,10 +273,30 @@ fn main() {
                     mouse_btn: MouseButton::Left,
                     ..
                 } => {}
-                Event::MouseWheel { y, .. } => {}
+                Event::MouseWheel { y, .. } => {
+                    fov -= y as f32;
+
+                    if fov < 1. {
+                        fov = 1.;
+                    }
+                    if fov > 75. {
+                        fov = 75.
+                    }
+                }
                 _ => {}
             }
         }
+        camera_front = glm::normalize(&glm::Vec3::new(
+            to_radians(yaw).cos() * to_radians(pitch).cos(),
+            to_radians(pitch).sin(),
+            to_radians(yaw).sin() * to_radians(pitch).cos(),
+        ));
+
+        let view = glm::look_at(&camera_pos, &(camera_pos + camera_front), &camera_up);
+        shader.set_mat4_f32("view", view);
+
+        let projection = glm::perspective(width as f32 / height as f32, to_radians(fov), 0.1, 100.);
+        shader.set_mat4_f32("projection", projection);
 
         // Update last_update for delta
         last_update = timer.ticks();
@@ -279,8 +335,6 @@ fn main() {
         if (FPS_CAP - elapsed) > 0.0 {
             timer.delay((FPS_CAP - elapsed).floor() as u32);
         }
-
-        println!("Delta time: {:#?}", delta);
 
         window.gl_swap_window();
     }
