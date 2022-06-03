@@ -4,8 +4,10 @@ use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::mouse::MouseButton;
 use shader::Shader;
+use utils::to_radians;
 
 mod shader;
+mod utils;
 
 const FPS_CAP: f32 = (1.0 / 60.0) * 1000.0;
 
@@ -158,6 +160,12 @@ fn main() {
     shader.set_i32("texture1", 0);
     shader.set_i32("texture2", 1);
 
+    let view = glm::translate(&glm::Mat4::identity(), &glm::Vec3::new(0., 0., -3.));
+    let projection = glm::perspective(width as f32 / height as f32, to_radians(55.), 0.1, 100.);
+
+    shader.set_mat4_f32("view", view);
+    shader.set_mat4_f32("projection", projection);
+
     while running {
         let milliseconds = timer.ticks();
         let start = timer.performance_counter();
@@ -249,11 +257,16 @@ fn main() {
             gl::BindVertexArray(vao);
         }
 
-        for c in cube_positions.iter() {
+        for (i, c) in cube_positions.iter().enumerate() {
             unsafe {
+                let model = glm::rotate(
+                    &glm::translate(&glm::Mat4::identity(), &c),
+                    to_radians(20. * i as f32),
+                    &glm::Vec3::new(1., 0.5, 0.3),
+                );
+                shader.set_mat4_f32("model", model);
                 gl::DrawArrays(gl::TRIANGLES, 0, 36);
             }
-            break;
         }
 
         unsafe {
