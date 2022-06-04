@@ -20,8 +20,6 @@ fn main() {
     sdl_context.mouse().capture(true);
     sdl_context.mouse().set_relative_mouse_mode(true);
 
-    println!(": {:#?}", sdl_context.mouse().is_cursor_showing());
-
     let video_system = sdl_context.video().expect("No video subsystem available");
 
     let gl_attr = video_system.gl_attr();
@@ -281,7 +279,6 @@ fn main() {
                     new_input.right_bracket.half_transition_count = 0;
                 }
                 Event::MouseMotion { xrel, yrel, .. } => {
-                    println!("Mouse: {} {}", xrel, yrel);
                     new_input.mouse.x += xrel as f32;
                     new_input.mouse.y += yrel as f32;
                 }
