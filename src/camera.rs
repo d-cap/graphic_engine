@@ -55,12 +55,12 @@ impl Camera {
     }
 
     pub fn move_left(&mut self, delta: f32) {
-        self.position +=
+        self.position -=
             glm::normalize(&glm::cross(&self.direction, &self.world_up)) * self.speed * delta;
     }
 
     pub fn move_right(&mut self, delta: f32) {
-        self.position -=
+        self.position +=
             glm::normalize(&glm::cross(&self.direction, &self.world_up)) * self.speed * delta;
     }
 

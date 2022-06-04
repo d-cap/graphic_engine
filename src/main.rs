@@ -5,7 +5,7 @@ use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::mouse::MouseButton;
 use shader::Shader;
-use utils::to_radians;
+use utils::{to_radians, Input};
 
 mod camera;
 mod shader;
@@ -19,6 +19,8 @@ fn main() {
     sdl_context.mouse().show_cursor(false);
     sdl_context.mouse().capture(true);
     sdl_context.mouse().set_relative_mouse_mode(true);
+
+    println!(": {:#?}", sdl_context.mouse().is_cursor_showing());
 
     let video_system = sdl_context.video().expect("No video subsystem available");
 
@@ -164,6 +166,9 @@ fn main() {
     shader.set_i32("texture1", 0);
     shader.set_i32("texture2", 1);
 
+    let mut old_input = Input::new(width as f32 / 2., height as f32 / 2.);
+    let mut new_input;
+
     let mut camera = Camera::new(
         glm::Vec3::new(0., 0., 3.),
         glm::Vec3::new(0., 0., -1.),
@@ -180,6 +185,10 @@ fn main() {
         let start = timer.performance_counter();
         let delta = (milliseconds - last_update) as f32 / 1000.;
 
+        new_input = old_input.clone();
+        new_input.delta_time = delta;
+        new_input.mouse_scroll = 0.;
+
         for event in event_pump.poll_iter() {
             match event {
                 Event::Quit { .. }
@@ -191,77 +200,134 @@ fn main() {
                     keycode: Some(Keycode::W),
                     ..
                 } => {
-                    camera.move_forward(delta);
+                    new_input.up.ended_down = true;
+                    new_input.up.half_transition_count += 1;
                 }
                 Event::KeyUp {
                     keycode: Some(Keycode::W),
                     ..
-                } => {}
-                Event::KeyDown {
-                    keycode: Some(Keycode::S),
-                    ..
                 } => {
-                    camera.move_backward(delta);
+                    new_input.up.ended_down = false;
+                    new_input.up.half_transition_count = 0;
                 }
-                Event::KeyUp {
-                    keycode: Some(Keycode::S),
-                    ..
-                } => {}
                 Event::KeyDown {
                     keycode: Some(Keycode::D),
                     ..
                 } => {
-                    camera.move_left(delta);
+                    new_input.right.ended_down = true;
+                    new_input.right.half_transition_count += 1;
                 }
                 Event::KeyUp {
                     keycode: Some(Keycode::D),
                     ..
-                } => {}
+                } => {
+                    new_input.right.ended_down = false;
+                    new_input.right.half_transition_count = 0;
+                }
+                Event::KeyDown {
+                    keycode: Some(Keycode::S),
+                    ..
+                } => {
+                    new_input.down.ended_down = true;
+                    new_input.down.half_transition_count += 1;
+                }
+                Event::KeyUp {
+                    keycode: Some(Keycode::S),
+                    ..
+                } => {
+                    new_input.down.ended_down = false;
+                    new_input.down.half_transition_count = 0;
+                }
                 Event::KeyDown {
                     keycode: Some(Keycode::A),
                     ..
                 } => {
-                    camera.move_right(delta);
+                    new_input.left.ended_down = true;
+                    new_input.left.half_transition_count += 1;
                 }
                 Event::KeyUp {
                     keycode: Some(Keycode::A),
                     ..
-                } => {}
-                Event::KeyDown {
-                    keycode: Some(Keycode::Q),
-                    ..
-                } => {}
-                Event::KeyUp {
-                    keycode: Some(Keycode::Q),
-                    ..
-                } => {}
-                Event::KeyDown {
-                    keycode: Some(Keycode::E),
-                    ..
-                } => {}
-                Event::KeyUp {
-                    keycode: Some(Keycode::E),
-                    ..
-                } => {}
-                Event::MouseMotion {
-                    x, y, xrel, yrel, ..
                 } => {
-                    // Relative motion needs to be added
-                    camera.move_mouse(x as f32, y as f32);
+                    new_input.left.ended_down = false;
+                    new_input.left.half_transition_count = 0;
+                }
+                Event::KeyDown {
+                    keycode: Some(Keycode::Q),
+                    ..
+                } => {
+                    new_input.left_bracket.ended_down = true;
+                    new_input.left_bracket.half_transition_count += 1;
+                }
+                Event::KeyUp {
+                    keycode: Some(Keycode::Q),
+                    ..
+                } => {
+                    new_input.left_bracket.ended_down = false;
+                    new_input.left_bracket.half_transition_count = 0;
+                }
+                Event::KeyDown {
+                    keycode: Some(Keycode::E),
+                    ..
+                } => {
+                    new_input.right_bracket.ended_down = true;
+                    new_input.right_bracket.half_transition_count += 1;
+                }
+                Event::KeyUp {
+                    keycode: Some(Keycode::E),
+                    ..
+                } => {
+                    new_input.right_bracket.ended_down = false;
+                    new_input.right_bracket.half_transition_count = 0;
+                }
+                Event::MouseMotion { xrel, yrel, .. } => {
+                    println!("Mouse: {} {}", xrel, yrel);
+                    new_input.mouse.x += xrel as f32;
+                    new_input.mouse.y += yrel as f32;
                 }
                 Event::MouseButtonDown {
                     mouse_btn: MouseButton::Left,
                     ..
-                } => {}
+                } => {
+                    new_input.mouse_left.ended_down = true;
+                    new_input.mouse_left.half_transition_count += 1;
+                }
                 Event::MouseButtonUp {
                     mouse_btn: MouseButton::Left,
                     ..
-                } => {}
+                } => {
+                    new_input.mouse_left.ended_down = false;
+                    new_input.mouse_left.half_transition_count = 0;
+                }
                 Event::MouseWheel { y, .. } => {
-                    camera.change_fov(y as f32);
+                    new_input.mouse_scroll = y as f32;
                 }
                 _ => {}
             }
+        }
+
+        if new_input.up.ended_down {
+            camera.move_forward(new_input.delta_time);
+        }
+
+        if new_input.down.ended_down {
+            camera.move_backward(new_input.delta_time);
+        }
+
+        if new_input.left.ended_down {
+            camera.move_left(new_input.delta_time);
+        }
+
+        if new_input.right.ended_down {
+            camera.move_right(new_input.delta_time);
+        }
+
+        if old_input.mouse_scroll != new_input.mouse_scroll {
+            camera.change_fov(new_input.mouse_scroll);
+        }
+
+        if old_input.mouse != new_input.mouse {
+            camera.move_mouse(new_input.mouse.x, new_input.mouse.y);
         }
 
         shader.set_mat4_f32("view", camera.view_matrix());
@@ -305,6 +371,8 @@ fn main() {
         if (FPS_CAP - elapsed) > 0.0 {
             timer.delay((FPS_CAP - elapsed).floor() as u32);
         }
+
+        old_input = new_input;
 
         window.gl_swap_window();
     }
