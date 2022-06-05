@@ -63,96 +63,11 @@ fn main() {
         "shader/triangle_fragment_shader.fs",
     );
 
-    let vertices: Vec<f32> = vec![
-        -0.5, -0.5, -0.5, 0.0, 0.0, //
-        0.5, -0.5, -0.5, 1.0, 0.0, //
-        0.5, 0.5, -0.5, 1.0, 1.0, //
-        0.5, 0.5, -0.5, 1.0, 1.0, //
-        -0.5, 0.5, -0.5, 0.0, 1.0, //
-        -0.5, -0.5, -0.5, 0.0, 0.0, //
-        -0.5, -0.5, 0.5, 0.0, 0.0, //
-        0.5, -0.5, 0.5, 1.0, 0.0, //
-        0.5, 0.5, 0.5, 1.0, 1.0, //
-        0.5, 0.5, 0.5, 1.0, 1.0, //
-        -0.5, 0.5, 0.5, 0.0, 1.0, //
-        -0.5, -0.5, 0.5, 0.0, 0.0, //
-        -0.5, 0.5, 0.5, 1.0, 0.0, //
-        -0.5, 0.5, -0.5, 1.0, 1.0, //
-        -0.5, -0.5, -0.5, 0.0, 1.0, //
-        -0.5, -0.5, -0.5, 0.0, 1.0, //
-        -0.5, -0.5, 0.5, 0.0, 0.0, //
-        -0.5, 0.5, 0.5, 1.0, 0.0, //
-        0.5, 0.5, 0.5, 1.0, 0.0, //
-        0.5, 0.5, -0.5, 1.0, 1.0, //
-        0.5, -0.5, -0.5, 0.0, 1.0, //
-        0.5, -0.5, -0.5, 0.0, 1.0, //
-        0.5, -0.5, 0.5, 0.0, 0.0, //
-        0.5, 0.5, 0.5, 1.0, 0.0, //
-        -0.5, -0.5, -0.5, 0.0, 1.0, //
-        0.5, -0.5, -0.5, 1.0, 1.0, //
-        0.5, -0.5, 0.5, 1.0, 0.0, //
-        0.5, -0.5, 0.5, 1.0, 0.0, //
-        -0.5, -0.5, 0.5, 0.0, 0.0, //
-        -0.5, -0.5, -0.5, 0.0, 1.0, //
-        -0.5, 0.5, -0.5, 0.0, 1.0, //
-        0.5, 0.5, -0.5, 1.0, 1.0, //
-        0.5, 0.5, 0.5, 1.0, 0.0, //
-        0.5, 0.5, 0.5, 1.0, 0.0, //
-        -0.5, 0.5, 0.5, 0.0, 0.0, //
-        -0.5, 0.5, -0.5, 0.0, 1.0, //
-    ];
+    let object_position = glm::Vec3::new(0., 0., 0.);
+    let object_vao = create_vao();
 
-    let cube_positions = vec![
-        glm::Vec3::new(0.0, 0.0, 0.0),
-        glm::Vec3::new(2.0, 5.0, -15.0),
-        glm::Vec3::new(-1.5, -2.2, -2.5),
-        glm::Vec3::new(-3.8, -2.0, -12.3),
-        glm::Vec3::new(2.4, -0.4, -3.5),
-        glm::Vec3::new(-1.7, 3.0, -7.5),
-        glm::Vec3::new(1.3, -2.0, -2.5),
-        glm::Vec3::new(1.5, 2.0, -2.5),
-        glm::Vec3::new(1.5, 0.2, -1.5),
-        glm::Vec3::new(-1.3, 1.0, -1.5),
-    ];
-
-    let mut vao = 0;
-    unsafe {
-        gl::GenVertexArrays(1, &mut vao);
-        gl::BindVertexArray(vao);
-        let mut vbo = 0;
-        gl::GenBuffers(1, &mut vbo);
-
-        gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
-        gl::BufferData(
-            gl::ARRAY_BUFFER,
-            (vertices.len() * std::mem::size_of::<f32>()) as _,
-            vertices.as_ptr() as _,
-            gl::STATIC_DRAW,
-        );
-    }
-
-    unsafe {
-        gl::VertexAttribPointer(
-            0,
-            3,
-            gl::FLOAT,
-            gl::FALSE,
-            (5 * std::mem::size_of::<f32>()) as _,
-            0 as _,
-        );
-        gl::EnableVertexAttribArray(0);
-        gl::VertexAttribPointer(
-            1,
-            2,
-            gl::FLOAT,
-            gl::FALSE,
-            (5 * std::mem::size_of::<f32>()) as _,
-            (3 * std::mem::size_of::<f32>()) as _,
-        );
-        gl::EnableVertexAttribArray(1);
-        gl::BindBuffer(gl::ARRAY_BUFFER, 0);
-        gl::BindVertexArray(0);
-    }
+    let light_position = glm::Vec3::new(1., 1., 1.);
+    let light_vao = create_vao();
 
     let image_texture_1 = image::open("images/container.jpg").unwrap();
     let texture_1 = create_texture(false, image_texture_1);
@@ -343,19 +258,22 @@ fn main() {
             gl::BindTexture(gl::TEXTURE_2D, texture_1);
             gl::ActiveTexture(gl::TEXTURE1);
             gl::BindTexture(gl::TEXTURE_2D, texture_2);
-            gl::BindVertexArray(vao);
-        }
 
-        for (i, c) in cube_positions.iter().enumerate() {
-            unsafe {
-                let model = glm::rotate(
-                    &glm::translate(&glm::Mat4::identity(), &c),
-                    to_radians(20. * i as f32),
-                    &glm::Vec3::new(1., 0.5, 0.3),
-                );
-                shader.set_mat4_f32("model", model);
-                gl::DrawArrays(gl::TRIANGLES, 0, 36);
-            }
+            gl::BindVertexArray(object_vao);
+            let model = glm::translate(&glm::Mat4::identity(), &object_position);
+            shader.set_mat4_f32("model", model);
+            gl::DrawArrays(gl::TRIANGLES, 0, 36);
+
+            gl::BindVertexArray(light_vao);
+            let model = glm::scale(
+                &glm::translate(
+                    &glm::Mat4::identity(),
+                    &glm::Vec3::new(2. * seconds.cos(), 1., 2. * seconds.sin()),
+                ),
+                &glm::Vec3::new(0.25, 0.25, 0.25),
+            );
+            shader.set_mat4_f32("model", model);
+            gl::DrawArrays(gl::TRIANGLES, 0, 36);
         }
 
         unsafe {
@@ -407,4 +325,81 @@ fn create_texture(include_alpha: bool, image: image::DynamicImage) -> gl::types:
         gl::GenerateMipmap(gl::TEXTURE_2D);
     }
     texture
+}
+
+fn create_vao() -> gl::types::GLuint {
+    let vertices: Vec<f32> = vec![
+        -0.5, -0.5, -0.5, 0.0, 0.0, //
+        0.5, -0.5, -0.5, 1.0, 0.0, //
+        0.5, 0.5, -0.5, 1.0, 1.0, //
+        0.5, 0.5, -0.5, 1.0, 1.0, //
+        -0.5, 0.5, -0.5, 0.0, 1.0, //
+        -0.5, -0.5, -0.5, 0.0, 0.0, //
+        -0.5, -0.5, 0.5, 0.0, 0.0, //
+        0.5, -0.5, 0.5, 1.0, 0.0, //
+        0.5, 0.5, 0.5, 1.0, 1.0, //
+        0.5, 0.5, 0.5, 1.0, 1.0, //
+        -0.5, 0.5, 0.5, 0.0, 1.0, //
+        -0.5, -0.5, 0.5, 0.0, 0.0, //
+        -0.5, 0.5, 0.5, 1.0, 0.0, //
+        -0.5, 0.5, -0.5, 1.0, 1.0, //
+        -0.5, -0.5, -0.5, 0.0, 1.0, //
+        -0.5, -0.5, -0.5, 0.0, 1.0, //
+        -0.5, -0.5, 0.5, 0.0, 0.0, //
+        -0.5, 0.5, 0.5, 1.0, 0.0, //
+        0.5, 0.5, 0.5, 1.0, 0.0, //
+        0.5, 0.5, -0.5, 1.0, 1.0, //
+        0.5, -0.5, -0.5, 0.0, 1.0, //
+        0.5, -0.5, -0.5, 0.0, 1.0, //
+        0.5, -0.5, 0.5, 0.0, 0.0, //
+        0.5, 0.5, 0.5, 1.0, 0.0, //
+        -0.5, -0.5, -0.5, 0.0, 1.0, //
+        0.5, -0.5, -0.5, 1.0, 1.0, //
+        0.5, -0.5, 0.5, 1.0, 0.0, //
+        0.5, -0.5, 0.5, 1.0, 0.0, //
+        -0.5, -0.5, 0.5, 0.0, 0.0, //
+        -0.5, -0.5, -0.5, 0.0, 1.0, //
+        -0.5, 0.5, -0.5, 0.0, 1.0, //
+        0.5, 0.5, -0.5, 1.0, 1.0, //
+        0.5, 0.5, 0.5, 1.0, 0.0, //
+        0.5, 0.5, 0.5, 1.0, 0.0, //
+        -0.5, 0.5, 0.5, 0.0, 0.0, //
+        -0.5, 0.5, -0.5, 0.0, 1.0, //
+    ];
+    let mut vao = 0;
+    unsafe {
+        gl::GenVertexArrays(1, &mut vao);
+        gl::BindVertexArray(vao);
+        let mut vbo = 0;
+        gl::GenBuffers(1, &mut vbo);
+
+        gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
+        gl::BufferData(
+            gl::ARRAY_BUFFER,
+            (vertices.len() * std::mem::size_of::<f32>()) as _,
+            vertices.as_ptr() as _,
+            gl::STATIC_DRAW,
+        );
+        gl::VertexAttribPointer(
+            0,
+            3,
+            gl::FLOAT,
+            gl::FALSE,
+            (5 * std::mem::size_of::<f32>()) as _,
+            0 as _,
+        );
+        gl::EnableVertexAttribArray(0);
+        gl::VertexAttribPointer(
+            1,
+            2,
+            gl::FLOAT,
+            gl::FALSE,
+            (5 * std::mem::size_of::<f32>()) as _,
+            (3 * std::mem::size_of::<f32>()) as _,
+        );
+        gl::EnableVertexAttribArray(1);
+        gl::BindBuffer(gl::ARRAY_BUFFER, 0);
+        gl::BindVertexArray(0);
+    }
+    vao
 }
