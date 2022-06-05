@@ -91,6 +91,13 @@ impl Shader {
             gl::UniformMatrix4fv(location, 1, gl::FALSE, value.as_ptr());
         }
     }
+
+    pub fn set_3_f32(&self, name: &str, r: f32, g: f32, b: f32) {
+        unsafe {
+            let location = gl::GetUniformLocation(self.id, to_cstring(name).as_ptr());
+            gl::Uniform3f(location, r, g, b);
+        }
+    }
 }
 
 fn read_file(path: &str) -> CString {

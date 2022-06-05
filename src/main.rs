@@ -58,15 +58,19 @@ fn main() {
         gl::DepthFunc(gl::LESS);
     }
 
-    let shader = Shader::new(
-        "shader/triangle_vertex_shader.vs",
-        "shader/triangle_fragment_shader.fs",
+    let object_shader = Shader::new(
+        "shader/object_vertex_shader.vs",
+        "shader/object_fragment_shader.fs",
+    );
+
+    let light_shader = Shader::new(
+        "shader/light_vertex_shader.vs",
+        "shader/light_fragment_shader.fs",
     );
 
     let object_position = glm::Vec3::new(0., 0., 0.);
     let object_vao = create_vao();
 
-    let light_position = glm::Vec3::new(1., 1., 1.);
     let light_vao = create_vao();
 
     let image_texture_1 = image::open("images/container.jpg").unwrap();
@@ -75,9 +79,9 @@ fn main() {
     let image_texture_2 = image::open("images/awesomeface.png").unwrap().flipv();
     let texture_2 = create_texture(true, image_texture_2);
 
-    shader.use_shader();
-    shader.set_i32("texture1", 0);
-    shader.set_i32("texture2", 1);
+    object_shader.use_shader();
+    object_shader.set_3_f32("objectColor", 1., 0.5, 0.31);
+    object_shader.set_3_f32("lightColor", 1., 1., 1.);
 
     let mut old_input = Input::new(width as f32 / 2., height as f32 / 2.);
     let mut new_input;
@@ -242,9 +246,13 @@ fn main() {
             camera.move_mouse(new_input.mouse.x, new_input.mouse.y);
         }
 
-        shader.set_mat4_f32("view", camera.view_matrix());
+        object_shader.use_shader();
+        object_shader.set_mat4_f32("view", camera.view_matrix());
+        object_shader.set_mat4_f32("projection", camera.projection_matrix());
 
-        shader.set_mat4_f32("projection", camera.projection_matrix());
+        light_shader.use_shader();
+        light_shader.set_mat4_f32("view", camera.view_matrix());
+        light_shader.set_mat4_f32("projection", camera.projection_matrix());
 
         // Update last_update for delta
         last_update = timer.ticks();
@@ -253,17 +261,18 @@ fn main() {
         unsafe {
             gl::ClearColor(0.5, 0.5, 0.6, 1.);
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
-            shader.use_shader();
-            gl::ActiveTexture(gl::TEXTURE0);
-            gl::BindTexture(gl::TEXTURE_2D, texture_1);
-            gl::ActiveTexture(gl::TEXTURE1);
-            gl::BindTexture(gl::TEXTURE_2D, texture_2);
+        }
 
+        unsafe {
+            object_shader.use_shader();
             gl::BindVertexArray(object_vao);
             let model = glm::translate(&glm::Mat4::identity(), &object_position);
-            shader.set_mat4_f32("model", model);
+            object_shader.set_mat4_f32("model", model);
             gl::DrawArrays(gl::TRIANGLES, 0, 36);
+        }
 
+        unsafe {
+            light_shader.use_shader();
             gl::BindVertexArray(light_vao);
             let model = glm::scale(
                 &glm::translate(
@@ -272,7 +281,7 @@ fn main() {
                 ),
                 &glm::Vec3::new(0.25, 0.25, 0.25),
             );
-            shader.set_mat4_f32("model", model);
+            light_shader.set_mat4_f32("model", model);
             gl::DrawArrays(gl::TRIANGLES, 0, 36);
         }
 
