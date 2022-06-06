@@ -69,9 +69,7 @@ fn main() {
     );
 
     let object_position = glm::Vec3::new(0., 0., 0.);
-    let object_vao = create_vao();
-
-    let light_vao = create_vao();
+    let (object_vao, light_vao) = create_vao();
 
     let image_texture_1 = image::open("images/container.jpg").unwrap();
     let texture_1 = create_texture(false, image_texture_1);
@@ -336,7 +334,7 @@ fn create_texture(include_alpha: bool, image: image::DynamicImage) -> gl::types:
     texture
 }
 
-fn create_vao() -> gl::types::GLuint {
+fn create_vao() -> (gl::types::GLuint, gl::types::GLuint) {
     let vertices: Vec<f32> = vec![
         -0.5, -0.5, -0.5, 0.0, 0.0, -1.0, //
         0.5, -0.5, -0.5, 0.0, 0.0, -1.0, //
@@ -376,6 +374,7 @@ fn create_vao() -> gl::types::GLuint {
         -0.5, 0.5, -0.5, 0.0, 1.0, 0.0, //
     ];
     let mut vao = 0;
+    let mut light_vao = 0;
     unsafe {
         gl::GenVertexArrays(1, &mut vao);
         gl::BindVertexArray(vao);
@@ -400,15 +399,30 @@ fn create_vao() -> gl::types::GLuint {
         gl::EnableVertexAttribArray(0);
         gl::VertexAttribPointer(
             1,
-            2,
+            3,
             gl::FLOAT,
             gl::FALSE,
             (6 * std::mem::size_of::<f32>()) as _,
             (3 * std::mem::size_of::<f32>()) as _,
         );
         gl::EnableVertexAttribArray(1);
+
+        gl::GenVertexArrays(1, &mut light_vao);
+        gl::BindVertexArray(light_vao);
+        gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
+
+        gl::VertexAttribPointer(
+            0,
+            3,
+            gl::FLOAT,
+            gl::FALSE,
+            (6 * std::mem::size_of::<f32>()) as _,
+            0 as _,
+        );
+        gl::EnableVertexAttribArray(0);
+
         gl::BindBuffer(gl::ARRAY_BUFFER, 0);
         gl::BindVertexArray(0);
     }
-    vao
+    (vao, light_vao)
 }
