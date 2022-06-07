@@ -5,7 +5,7 @@ use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::mouse::MouseButton;
 use shader::Shader;
-use utils::{to_radians, Input};
+use utils::Input;
 
 mod camera;
 mod shader;
@@ -249,6 +249,7 @@ fn main() {
         object_shader.use_shader();
         object_shader.set_mat4_f32("view", camera.view_matrix());
         object_shader.set_mat4_f32("projection", camera.projection_matrix());
+        object_shader.set_vec3_f32("lightPos", &light_pos);
 
         light_shader.use_shader();
         light_shader.set_mat4_f32("view", camera.view_matrix());
