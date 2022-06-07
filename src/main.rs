@@ -244,6 +244,8 @@ fn main() {
             camera.move_mouse(new_input.mouse.x, new_input.mouse.y);
         }
 
+        let light_pos = glm::Vec3::new(2. * seconds.cos(), 1., 2. * seconds.sin());
+
         object_shader.use_shader();
         object_shader.set_mat4_f32("view", camera.view_matrix());
         object_shader.set_mat4_f32("projection", camera.projection_matrix());
@@ -273,10 +275,7 @@ fn main() {
             light_shader.use_shader();
             gl::BindVertexArray(light_vao);
             let model = glm::scale(
-                &glm::translate(
-                    &glm::Mat4::identity(),
-                    &glm::Vec3::new(2. * seconds.cos(), 1., 2. * seconds.sin()),
-                ),
+                &glm::translate(&glm::Mat4::identity(), &light_pos),
                 &glm::Vec3::new(0.25, 0.25, 0.25),
             );
             light_shader.set_mat4_f32("model", model);

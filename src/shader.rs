@@ -98,6 +98,13 @@ impl Shader {
             gl::Uniform3f(location, r, g, b);
         }
     }
+
+    pub fn set_vec3_32(&self, name: &str, value: &glm::Vec3) {
+        unsafe {
+            let location = gl::GetUniformLocation(self.id, to_cstring(name).as_ptr());
+            gl::Uniform3fv(location, 1, value.as_ptr());
+        }
+    }
 }
 
 fn read_file(path: &str) -> CString {
