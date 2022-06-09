@@ -5,6 +5,7 @@ use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::mouse::MouseButton;
 use shader::Shader;
+use stb_image::image::LoadResult;
 use utils::Input;
 
 mod camera;
@@ -71,11 +72,9 @@ fn main() {
     let object_position = glm::Vec3::new(0., 0., 0.);
     let (object_vao, light_vao) = create_vao();
 
-    let image_texture_1 = image::open("images/container.jpg").unwrap();
-    let texture_1 = create_texture(false, image_texture_1);
+    let diffuse_texture = create_texture("images/container2.png");
 
-    let image_texture_2 = image::open("images/awesomeface.png").unwrap().flipv();
-    let texture_2 = create_texture(true, image_texture_2);
+    let specular_texture = create_texture("images/container2_specular.png");
 
     let mut old_input = Input::new(width as f32 / 2., height as f32 / 2.);
     let mut new_input;
@@ -89,6 +88,14 @@ fn main() {
         height as f32,
         0.1,
     );
+
+    object_shader.use_shader();
+    object_shader.set_i32("material.diffuse", 0);
+    object_shader.set_i32("material.specular", 1);
+    object_shader.set_f32("material.shininess", 64.);
+    object_shader.set_3_f32("light.ambient", 0.2, 0.2, 0.2);
+    object_shader.set_3_f32("light.diffuse", 0.5, 0.5, 0.5);
+    object_shader.set_3_f32("light.specular", 1.0, 1.0, 1.0);
 
     while running {
         let milliseconds = timer.ticks();
@@ -247,14 +254,7 @@ fn main() {
         object_shader.set_mat4_f32("projection", camera.projection_matrix());
         object_shader.set_vec3_f32("lightPos", &light_pos);
         object_shader.set_vec3_f32("cameraPos", &camera.position);
-        object_shader.set_3_f32("material.ambient", 1.0, 0.5, 0.31);
-        object_shader.set_3_f32("material.diffuse", 1.0, 0.5, 0.31);
-        object_shader.set_3_f32("material.specular", 0.5, 0.5, 0.5);
-        object_shader.set_f32("material.shininess", 32.0);
         object_shader.set_vec3_f32("light.position", &light_pos);
-        object_shader.set_3_f32("light.ambient", 0.2, 0.2, 0.2);
-        object_shader.set_3_f32("light.diffuse", 0.5, 0.5, 0.5); // darken diffuse light a bit
-        object_shader.set_3_f32("light.specular", 1.0, 1.0, 1.0);
 
         light_shader.use_shader();
         light_shader.set_mat4_f32("view", camera.view_matrix());
@@ -271,6 +271,10 @@ fn main() {
 
         unsafe {
             object_shader.use_shader();
+            gl::ActiveTexture(gl::TEXTURE0);
+            gl::BindTexture(gl::TEXTURE_2D, diffuse_texture);
+            gl::ActiveTexture(gl::TEXTURE1);
+            gl::BindTexture(gl::TEXTURE_2D, specular_texture);
             gl::BindVertexArray(object_vao);
             let model = glm::translate(&glm::Mat4::identity(), &object_position);
             object_shader.set_mat4_f32("model", model);
@@ -305,9 +309,15 @@ fn main() {
     }
 }
 
-fn create_texture(include_alpha: bool, image: image::DynamicImage) -> gl::types::GLuint {
+fn create_texture(image_path: &str) -> gl::types::GLuint {
     let mut texture = 0;
     unsafe {
+        let image = stb_image::image::load(image_path);
+        let image = match image {
+            LoadResult::ImageF32(_) => panic!(),
+            LoadResult::ImageU8(image) => image,
+            LoadResult::Error(_) => panic!(),
+        };
         gl::GenTextures(1, &mut texture);
         gl::BindTexture(gl::TEXTURE_2D, texture);
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as _);
@@ -318,21 +328,24 @@ fn create_texture(include_alpha: bool, image: image::DynamicImage) -> gl::types:
             gl::LINEAR_MIPMAP_LINEAR as _,
         );
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as _);
-        let image_ptr = if include_alpha {
-            image.to_rgba8().to_vec()
-        } else {
-            image.to_rgb8().to_vec()
+
+        let format = match image.depth {
+            1 => gl::RED,
+            3 => gl::RGB,
+            4 => gl::RGBA,
+            _ => panic!(),
         };
+
         gl::TexImage2D(
             gl::TEXTURE_2D,
             0,
-            if include_alpha { gl::RGBA } else { gl::RGB } as _,
-            image.width() as _,
-            image.height() as _,
+            format as _,
+            image.width as _,
+            image.height as _,
             0,
-            if include_alpha { gl::RGBA } else { gl::RGB },
+            format,
             gl::UNSIGNED_BYTE,
-            image_ptr.as_ptr() as _,
+            image.data.as_ptr() as _,
         );
         gl::GenerateMipmap(gl::TEXTURE_2D);
     }

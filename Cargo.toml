@@ -8,6 +8,6 @@ edition = "2021"
 [dependencies]
 sdl2 = "^0"
 gl = "^0"
-image = "^0"
+stb_image = "^0"
 nalgebra = "^0"
 nalgebra-glm = "^0"
