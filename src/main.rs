@@ -250,6 +250,7 @@ fn main() {
         object_shader.set_mat4_f32("view", camera.view_matrix());
         object_shader.set_mat4_f32("projection", camera.projection_matrix());
         object_shader.set_vec3_f32("lightPos", &light_pos);
+        object_shader.set_vec3_f32("cameraPos", &camera.position);
 
         light_shader.use_shader();
         light_shader.set_mat4_f32("view", camera.view_matrix());

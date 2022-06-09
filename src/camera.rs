@@ -3,7 +3,7 @@ use glm::Vec3;
 use crate::utils::to_radians;
 
 pub struct Camera {
-    position: Vec3,
+    pub position: Vec3,
     direction: Vec3,
     up: Vec3,
     world_up: Vec3,
