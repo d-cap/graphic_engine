@@ -77,10 +77,6 @@ fn main() {
     let image_texture_2 = image::open("images/awesomeface.png").unwrap().flipv();
     let texture_2 = create_texture(true, image_texture_2);
 
-    object_shader.use_shader();
-    object_shader.set_3_f32("objectColor", 1., 0.5, 0.31);
-    object_shader.set_3_f32("lightColor", 1., 1., 1.);
-
     let mut old_input = Input::new(width as f32 / 2., height as f32 / 2.);
     let mut new_input;
 
@@ -251,6 +247,14 @@ fn main() {
         object_shader.set_mat4_f32("projection", camera.projection_matrix());
         object_shader.set_vec3_f32("lightPos", &light_pos);
         object_shader.set_vec3_f32("cameraPos", &camera.position);
+        object_shader.set_3_f32("material.ambient", 1.0, 0.5, 0.31);
+        object_shader.set_3_f32("material.diffuse", 1.0, 0.5, 0.31);
+        object_shader.set_3_f32("material.specular", 0.5, 0.5, 0.5);
+        object_shader.set_f32("material.shininess", 32.0);
+        object_shader.set_vec3_f32("light.position", &light_pos);
+        object_shader.set_3_f32("light.ambient", 0.2, 0.2, 0.2);
+        object_shader.set_3_f32("light.diffuse", 0.5, 0.5, 0.5); // darken diffuse light a bit
+        object_shader.set_3_f32("light.specular", 1.0, 1.0, 1.0);
 
         light_shader.use_shader();
         light_shader.set_mat4_f32("view", camera.view_matrix());

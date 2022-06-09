@@ -85,6 +85,13 @@ impl Shader {
         }
     }
 
+    pub fn set_f32(&self, name: &str, value: f32) {
+        unsafe {
+            let location = gl::GetUniformLocation(self.id, to_cstring(name).as_ptr());
+            gl::Uniform1f(location, value);
+        }
+    }
+
     pub fn set_mat4_f32(&self, name: &str, value: glm::Mat4) {
         unsafe {
             let location = gl::GetUniformLocation(self.id, to_cstring(name).as_ptr());
