@@ -6,7 +6,7 @@ use sdl2::keyboard::Keycode;
 use sdl2::mouse::MouseButton;
 use shader::Shader;
 use stb_image::image::LoadResult;
-use utils::Input;
+use utils::{to_radians, Input};
 
 mod camera;
 mod shader;
@@ -69,7 +69,6 @@ fn main() {
         "shader/light_fragment_shader.fs",
     );
 
-    let object_position = glm::Vec3::new(0., 0., 0.);
     let (object_vao, light_vao) = create_vao();
 
     let diffuse_texture = create_texture("images/container2.png");
@@ -96,6 +95,19 @@ fn main() {
     object_shader.set_3_f32("light.ambient", 0.2, 0.2, 0.2);
     object_shader.set_3_f32("light.diffuse", 0.5, 0.5, 0.5);
     object_shader.set_3_f32("light.specular", 1.0, 1.0, 1.0);
+
+    let cube_positions: Vec<glm::Vec3> = vec![
+        glm::vec3(0., 0., 0.),       //
+        glm::vec3(2., 5., -15.0),    //
+        glm::vec3(-1.5, -2.2, -2.5), //
+        glm::vec3(-3.8, -2., -12.3), //
+        glm::vec3(2.4, -0.4, -3.5),  //
+        glm::vec3(-1.7, 3., -7.5),   //
+        glm::vec3(1.3, -2., -2.5),   //
+        glm::vec3(1.5, 2., -2.5),    //
+        glm::vec3(1.5, 0.2, -1.5),   //
+        glm::vec3(-1.3, 1., -1.5),   //
+    ];
 
     while running {
         let milliseconds = timer.ticks();
@@ -247,7 +259,11 @@ fn main() {
             camera.move_mouse(new_input.mouse.x, new_input.mouse.y);
         }
 
-        let light_pos = glm::Vec3::new(2. * seconds.cos(), 1., 2. * seconds.sin());
+        let light_pos = glm::Vec3::new(
+            2. * seconds.cos(),
+            2. * seconds.sin() + 2. * seconds.cos(),
+            2. * seconds.sin(),
+        );
 
         object_shader.use_shader();
         object_shader.set_mat4_f32("view", camera.view_matrix());
@@ -276,9 +292,16 @@ fn main() {
             gl::ActiveTexture(gl::TEXTURE1);
             gl::BindTexture(gl::TEXTURE_2D, specular_texture);
             gl::BindVertexArray(object_vao);
-            let model = glm::translate(&glm::Mat4::identity(), &object_position);
-            object_shader.set_mat4_f32("model", model);
-            gl::DrawArrays(gl::TRIANGLES, 0, 36);
+            for (i, c) in cube_positions.iter().enumerate() {
+                let angle = 20. * i as f32;
+                let model = glm::rotate(
+                    &glm::translate(&glm::Mat4::identity(), &c),
+                    to_radians(angle),
+                    &glm::Vec3::new(1., 0.3, 0.5),
+                );
+                object_shader.set_mat4_f32("model", model);
+                gl::DrawArrays(gl::TRIANGLES, 0, 36);
+            }
         }
 
         unsafe {
