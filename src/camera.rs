@@ -1,74 +1,60 @@
 use glm::Vec3;
 
-use crate::utils::to_radians;
+const YAW: f32 = -90.;
+const PITCH: f32 = 0.;
+const SPEED: f32 = 2.5;
+const SENSITIVITY: f32 = 0.1;
+const ZOOM: f32 = 45.;
 
 pub struct Camera {
     pub position: Vec3,
-    direction: Vec3,
-    up: Vec3,
-    world_up: Vec3,
-    speed: f32,
-    prev_mouse_x: f32,
-    prev_mouse_y: f32,
-    yaw: f32,
-    pitch: f32,
-    mouse_sensitivity: f32,
-    fov: f32,
-    width: f32,
-    height: f32,
+    pub front: Vec3,
+    pub right: Vec3,
+    pub up: Vec3,
+    pub world_up: Vec3,
+    pub yaw: f32,
+    pub pitch: f32,
+    pub movement_speed: f32,
+    pub mouse_sensitivity: f32,
+    pub zoom: f32,
+}
+
+impl Default for Camera {
+    fn default() -> Camera {
+        let mut camera = Camera {
+            position: Vec3::new(0.0, 0.0, 0.0),
+            front: Vec3::new(0.0, 0.0, -1.0),
+            up: Vec3::zeros(),    // initialized later
+            right: Vec3::zeros(), // initialized later
+            world_up: Vec3::new(0., 1., 0.),
+            yaw: YAW,
+            pitch: PITCH,
+            movement_speed: SPEED,
+            mouse_sensitivity: SENSITIVITY,
+            zoom: ZOOM,
+        };
+        camera.update();
+        camera
+    }
 }
 
 impl Camera {
-    pub fn new(
-        initial_position: Vec3,
-        direction: Vec3,
-        world_up: Vec3,
-        speed: f32,
-        width: f32,
-        height: f32,
-        mouse_sensitivity: f32,
-    ) -> Self {
-        let mut s = Self {
-            position: initial_position,
-            direction,
-            up: world_up.clone(),
-            world_up,
-            speed,
-            prev_mouse_x: width / 2.,
-            prev_mouse_y: height / 2.,
-            yaw: -90.,
-            pitch: 0.,
-            mouse_sensitivity,
-            fov: 45.,
-            width,
-            height,
-        };
-        s.update();
-        s
-    }
-
     pub fn move_forward(&mut self, delta: f32) {
-        self.position += self.speed * delta * self.direction;
+        self.position += self.movement_speed * delta * self.front;
     }
     pub fn move_backward(&mut self, delta: f32) {
-        self.position -= self.speed * delta * self.direction;
+        self.position -= self.movement_speed * delta * self.front;
     }
 
     pub fn move_left(&mut self, delta: f32) {
-        self.position -=
-            glm::normalize(&glm::cross(&self.direction, &self.world_up)) * self.speed * delta;
+        self.position -= self.right * self.movement_speed * delta;
     }
 
     pub fn move_right(&mut self, delta: f32) {
-        self.position +=
-            glm::normalize(&glm::cross(&self.direction, &self.world_up)) * self.speed * delta;
+        self.position += self.right * self.movement_speed * delta;
     }
 
-    pub fn move_mouse(&mut self, x: f32, y: f32) {
-        let mut x_offset = x as f32 - self.prev_mouse_x;
-        let mut y_offset = self.prev_mouse_y - y as f32;
-        self.prev_mouse_x = x as f32;
-        self.prev_mouse_y = y as f32;
+    pub fn move_mouse(&mut self, mut x_offset: f32, mut y_offset: f32) {
         x_offset *= self.mouse_sensitivity;
         y_offset *= self.mouse_sensitivity;
         self.yaw += x_offset;
@@ -84,30 +70,27 @@ impl Camera {
     }
 
     pub fn change_fov(&mut self, y: f32) {
-        self.fov -= y;
+        self.zoom -= y;
 
-        if self.fov < 1. {
-            self.fov = 1.;
+        if self.zoom < 1. {
+            self.zoom = 1.;
         }
-        if self.fov > 75. {
-            self.fov = 75.
+        if self.zoom > 75. {
+            self.zoom = 75.
         }
     }
 
     pub fn view_matrix(&self) -> glm::Mat4 {
-        glm::look_at(&self.position, &(self.position + self.direction), &self.up)
-    }
-
-    pub fn projection_matrix(&self) -> glm::Mat4 {
-        glm::perspective(self.width / self.height, to_radians(self.fov), 0.1, 100.)
+        glm::look_at(&self.position, &(self.position + self.front), &self.up)
     }
 
     fn update(&mut self) {
-        self.direction = glm::normalize(&glm::Vec3::new(
-            to_radians(self.yaw).cos() * to_radians(self.pitch).cos(),
-            to_radians(self.pitch).sin(),
-            to_radians(self.yaw).sin() * to_radians(self.pitch).cos(),
+        self.front = glm::normalize(&glm::Vec3::new(
+            self.yaw.to_radians().cos() * self.pitch.to_radians().cos(),
+            self.pitch.to_radians().sin(),
+            self.yaw.to_radians().sin() * self.pitch.to_radians().cos(),
         ));
-        // Saving up and right we can update them once instead of having to recalculate for every move for position
+        self.right = self.front.cross(&self.world_up).normalize();
+        self.up = self.right.cross(&self.front).normalize();
     }
 }

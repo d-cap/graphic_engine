@@ -1,10 +1,3 @@
-use std::f32::consts::PI;
-
-#[inline]
-pub fn to_radians(angle: f32) -> f32 {
-    angle * (PI / 180.)
-}
-
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct ButtonState {
     pub half_transition_count: i32,

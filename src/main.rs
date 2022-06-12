@@ -1,12 +1,10 @@
 extern crate nalgebra_glm as glm;
 
 use camera::Camera;
-use sdl2::event::Event;
-use sdl2::keyboard::Keycode;
-use sdl2::mouse::MouseButton;
+use glfw::{Action, Context, Key, MouseButton};
 use shader::Shader;
 use stb_image::image::LoadResult;
-use utils::{to_radians, Input};
+use utils::Input;
 
 mod camera;
 mod shader;
@@ -15,44 +13,36 @@ mod utils;
 const FPS_CAP: f32 = (1.0 / 60.0) * 1000.0;
 
 fn main() {
-    let sdl_context = sdl2::init().expect("Impossible to load sdl");
+    let mut camera = Camera {
+        position: glm::Vec3::new(0., 0., 3.),
+        ..Camera::default()
+    };
 
-    sdl_context.mouse().show_cursor(false);
-    sdl_context.mouse().capture(true);
-    sdl_context.mouse().set_relative_mouse_mode(true);
-
-    let video_system = sdl_context.video().expect("No video subsystem available");
-
-    let gl_attr = video_system.gl_attr();
-    gl_attr.set_multisample_buffers(1);
-    gl_attr.set_multisample_samples(4);
-
-    let width = 1400 as i32;
-    let height = 900 as i32;
-    let window_init = video_system
-        .window("Game", width as u32, height as u32)
-        .opengl()
-        .input_grabbed()
-        .borderless()
-        // .fullscreen()
-        .build();
-
-    let window = window_init.expect("Window not initialized");
-
-    let gl_contex_init = window.gl_create_context();
-
-    let _gl_context = gl_contex_init.expect("Gl context not initialized");
-    let _gl = gl::load_with(|s| video_system.gl_get_proc_address(s) as *const std::os::raw::c_void);
-    unsafe {
-        gl::Viewport(0, 0, width, height);
-    }
-
-    let mut event_pump = sdl_context.event_pump().expect("No event pump");
-
-    let mut timer = sdl_context.timer().expect("No timer");
+    let width = 1400;
+    let height = 900;
 
     let mut running = true;
-    let mut last_update = timer.ticks();
+
+    let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
+    glfw.window_hint(glfw::WindowHint::ContextVersion(3, 3));
+    glfw.window_hint(glfw::WindowHint::OpenGlProfile(
+        glfw::OpenGlProfileHint::Core,
+    ));
+
+    let (mut window, events) = glfw
+        .create_window(width, height, "GL Engine", glfw::WindowMode::Windowed)
+        .expect("Window creation failed");
+
+    window.make_current();
+    window.set_framebuffer_size_polling(true);
+    window.set_cursor_pos_polling(true);
+    window.set_mouse_button_polling(true);
+    window.set_scroll_polling(true);
+    window.set_key_polling(true);
+
+    window.set_cursor_mode(glfw::CursorMode::Disabled);
+
+    gl::load_with(|symbol| window.get_proc_address(symbol));
 
     unsafe {
         gl::Enable(gl::DEPTH_TEST);
@@ -78,16 +68,6 @@ fn main() {
     let mut old_input = Input::new(width as f32 / 2., height as f32 / 2.);
     let mut new_input;
 
-    let mut camera = Camera::new(
-        glm::Vec3::new(0., 0., 3.),
-        glm::Vec3::new(0., 0., -1.),
-        glm::Vec3::new(0., 1., 0.),
-        2.5,
-        width as f32,
-        height as f32,
-        0.1,
-    );
-
     object_shader.use_shader();
     object_shader.set_i32("material.diffuse", 0);
     object_shader.set_i32("material.specular", 1);
@@ -109,127 +89,98 @@ fn main() {
         glm::vec3(-1.3, 1., -1.5),   //
     ];
 
+    let mut delta: f32;
+    let mut last_frame = 0.;
+
+    let mut last_x = width as f32 / 2.;
+    let mut last_y = height as f32 / 2.;
+    let mut first_mouse = true;
+
     while running {
-        let milliseconds = timer.ticks();
-        let seconds = milliseconds as f32 / 1000.;
-        let start = timer.performance_counter();
-        let delta = (milliseconds - last_update) as f32 / 1000.;
+        let seconds = glfw.get_time() as f32;
+        delta = seconds - last_frame;
+        last_frame = seconds;
 
         new_input = old_input.clone();
         new_input.delta_time = delta;
         new_input.mouse_scroll = 0.;
 
-        for event in event_pump.poll_iter() {
+        for (_, event) in glfw::flush_messages(&events) {
             match event {
-                Event::Quit { .. }
-                | Event::KeyDown {
-                    keycode: Some(Keycode::Escape),
-                    ..
-                } => running = false,
-                Event::KeyDown {
-                    keycode: Some(Keycode::W),
-                    ..
-                } => {
+                glfw::WindowEvent::Key(Key::Escape, _, _, _) => running = false,
+                glfw::WindowEvent::Key(Key::W, _, Action::Press, _) => {
                     new_input.up.ended_down = true;
                     new_input.up.half_transition_count += 1;
                 }
-                Event::KeyUp {
-                    keycode: Some(Keycode::W),
-                    ..
-                } => {
+                glfw::WindowEvent::Key(Key::W, _, Action::Release, _) => {
                     new_input.up.ended_down = false;
                     new_input.up.half_transition_count = 0;
                 }
-                Event::KeyDown {
-                    keycode: Some(Keycode::D),
-                    ..
-                } => {
+                glfw::WindowEvent::Key(Key::D, _, Action::Press, _) => {
                     new_input.right.ended_down = true;
                     new_input.right.half_transition_count += 1;
                 }
-                Event::KeyUp {
-                    keycode: Some(Keycode::D),
-                    ..
-                } => {
+                glfw::WindowEvent::Key(Key::D, _, Action::Release, _) => {
                     new_input.right.ended_down = false;
                     new_input.right.half_transition_count = 0;
                 }
-                Event::KeyDown {
-                    keycode: Some(Keycode::S),
-                    ..
-                } => {
+                glfw::WindowEvent::Key(Key::S, _, Action::Press, _) => {
                     new_input.down.ended_down = true;
                     new_input.down.half_transition_count += 1;
                 }
-                Event::KeyUp {
-                    keycode: Some(Keycode::S),
-                    ..
-                } => {
+                glfw::WindowEvent::Key(Key::S, _, Action::Release, _) => {
                     new_input.down.ended_down = false;
                     new_input.down.half_transition_count = 0;
                 }
-                Event::KeyDown {
-                    keycode: Some(Keycode::A),
-                    ..
-                } => {
+                glfw::WindowEvent::Key(Key::A, _, Action::Press, _) => {
                     new_input.left.ended_down = true;
                     new_input.left.half_transition_count += 1;
                 }
-                Event::KeyUp {
-                    keycode: Some(Keycode::A),
-                    ..
-                } => {
+                glfw::WindowEvent::Key(Key::A, _, Action::Release, _) => {
                     new_input.left.ended_down = false;
                     new_input.left.half_transition_count = 0;
                 }
-                Event::KeyDown {
-                    keycode: Some(Keycode::Q),
-                    ..
-                } => {
+                glfw::WindowEvent::Key(Key::Q, _, Action::Press, _) => {
                     new_input.left_bracket.ended_down = true;
                     new_input.left_bracket.half_transition_count += 1;
                 }
-                Event::KeyUp {
-                    keycode: Some(Keycode::Q),
-                    ..
-                } => {
+                glfw::WindowEvent::Key(Key::Q, _, Action::Release, _) => {
                     new_input.left_bracket.ended_down = false;
                     new_input.left_bracket.half_transition_count = 0;
                 }
-                Event::KeyDown {
-                    keycode: Some(Keycode::E),
-                    ..
-                } => {
+                glfw::WindowEvent::Key(Key::E, _, Action::Press, _) => {
                     new_input.right_bracket.ended_down = true;
                     new_input.right_bracket.half_transition_count += 1;
                 }
-                Event::KeyUp {
-                    keycode: Some(Keycode::E),
-                    ..
-                } => {
+                glfw::WindowEvent::Key(Key::E, _, Action::Release, _) => {
                     new_input.right_bracket.ended_down = false;
                     new_input.right_bracket.half_transition_count = 0;
                 }
-                Event::MouseMotion { xrel, yrel, .. } => {
-                    new_input.mouse.x += xrel as f32;
-                    new_input.mouse.y += yrel as f32;
+                glfw::WindowEvent::CursorPos(x_pos, y_pos) => {
+                    let x_pos = x_pos as f32;
+                    let y_pos = y_pos as f32;
+                    if first_mouse {
+                        last_x = x_pos;
+                        last_y = y_pos;
+                        first_mouse = false;
+                    }
+                    let x_offset = x_pos - last_x;
+                    let y_offset = last_y - y_pos;
+
+                    last_x = x_pos;
+                    last_y = y_pos;
+                    camera.move_mouse(x_offset, y_offset);
                 }
-                Event::MouseButtonDown {
-                    mouse_btn: MouseButton::Left,
-                    ..
-                } => {
+                glfw::WindowEvent::MouseButton(MouseButton::Button1, Action::Press, _) => {
                     new_input.mouse_left.ended_down = true;
                     new_input.mouse_left.half_transition_count += 1;
                 }
-                Event::MouseButtonUp {
-                    mouse_btn: MouseButton::Left,
-                    ..
-                } => {
+                glfw::WindowEvent::MouseButton(MouseButton::Button1, Action::Release, _) => {
                     new_input.mouse_left.ended_down = false;
                     new_input.mouse_left.half_transition_count = 0;
                 }
-                Event::MouseWheel { y, .. } => {
-                    new_input.mouse_scroll = y as f32;
+                glfw::WindowEvent::Scroll(_, y_offset) => {
+                    new_input.mouse_scroll = y_offset as f32;
                 }
                 _ => {}
             }
@@ -259,29 +210,31 @@ fn main() {
             camera.move_mouse(new_input.mouse.x, new_input.mouse.y);
         }
 
+        // Update
         let light_pos = glm::Vec3::new(
             2. * seconds.cos(),
             2. * seconds.sin() + 2. * seconds.cos(),
             2. * seconds.sin(),
         );
 
+        let projection_matrix: glm::Mat4 =
+            glm::perspective(width as f32 / height as f32, camera.zoom, 0.1, 100.0);
+
         object_shader.use_shader();
         object_shader.set_mat4_f32("view", camera.view_matrix());
-        object_shader.set_mat4_f32("projection", camera.projection_matrix());
+        object_shader.set_mat4_f32("projection", projection_matrix);
         object_shader.set_vec3_f32("lightPos", &light_pos);
         object_shader.set_vec3_f32("cameraPos", &camera.position);
         object_shader.set_vec3_f32("light.position", &light_pos);
 
         light_shader.use_shader();
         light_shader.set_mat4_f32("view", camera.view_matrix());
-        light_shader.set_mat4_f32("projection", camera.projection_matrix());
-
-        // Update last_update for delta
-        last_update = timer.ticks();
+        light_shader.set_mat4_f32("projection", projection_matrix);
 
         // Render
         unsafe {
-            gl::ClearColor(0.5, 0.5, 0.6, 1.);
+            gl::ClearColor(0.1, 0.1, 0.1, 1.);
+            // gl::ClearColor(0.5, 0.5, 0.6, 1.);
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
         }
 
@@ -296,7 +249,7 @@ fn main() {
                 let angle = 20. * i as f32;
                 let model = glm::rotate(
                     &glm::translate(&glm::Mat4::identity(), &c),
-                    to_radians(angle),
+                    angle.to_radians(),
                     &glm::Vec3::new(1., 0.3, 0.5),
                 );
                 object_shader.set_mat4_f32("model", model);
@@ -319,16 +272,17 @@ fn main() {
             gl::BindVertexArray(0);
         };
 
-        let end = timer.performance_counter();
-        let elapsed = (end - start) as f32 / timer.performance_frequency() as f32 * 1000.0;
-
+        let elapsed = glfw.get_time() as f32 - seconds;
         if (FPS_CAP - elapsed) > 0.0 {
-            timer.delay((FPS_CAP - elapsed).floor() as u32);
+            std::thread::sleep(std::time::Duration::from_millis(
+                (FPS_CAP - elapsed).floor() as u64,
+            ));
         }
 
         old_input = new_input;
 
-        window.gl_swap_window();
+        window.swap_buffers();
+        glfw.poll_events();
     }
 }
 
