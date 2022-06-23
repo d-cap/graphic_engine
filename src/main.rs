@@ -225,7 +225,13 @@ fn main() {
         object_shader.set_mat4_f32("projection", projection_matrix);
         object_shader.set_vec3_f32("lightPos", &light_pos);
         object_shader.set_vec3_f32("cameraPos", &camera.position);
-        object_shader.set_vec3_f32("light.position", &light_pos);
+        object_shader.set_vec3_f32("light.position", &camera.position);
+        object_shader.set_vec3_f32("light.direction", &camera.front);
+        object_shader.set_f32("light.cutOff", 12.5_f32.to_radians().cos());
+        object_shader.set_f32("light.outerCutOff", 17.5_f32.to_radians().cos());
+        object_shader.set_f32("light.constant", 1.);
+        object_shader.set_f32("light.linear", 0.09);
+        object_shader.set_f32("light.quadratic", 0.032);
 
         light_shader.use_shader();
         light_shader.set_mat4_f32("view", camera.view_matrix());
